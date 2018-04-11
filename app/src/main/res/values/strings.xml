@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">ClassicBluetooth</string>
+    <string name="menu_scan">Scan</string>
+    <string name="menu_stop">Stop</string>
+    <string name="menu_refresh">Refresh</string>
+    <string name="menu_connect">Connect</string>
+    <string name="menu_disconnect">Disconnect</string>
+    <string name="unknow_device">Unknow Device</string>
+    <string name="scanning">正在搜索蓝牙设备</string>
+    <string name="device_scanned">搜索到以下设备</string>
+    <string name="scan_finished">搜索完成</string>
+    <string name="bonded_devices">已配对的设备:</string>
+</resources>
