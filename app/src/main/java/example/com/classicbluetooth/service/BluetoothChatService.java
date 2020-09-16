@@ -104,7 +104,7 @@ public class BluetoothChatService {
      */
     private void connectionLost() {
         MyApplication.getInstance().setConnectState(false);
-        Log.e("limeng", "connectionLost-------》》》》连接已断开");
+        Log.e(TAG, "connectionLost:-------》》》》连接已断开 ");
         Message msg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
         bundle.putString(Constants.TOAST, "连接已断开");
@@ -139,8 +139,11 @@ public class BluetoothChatService {
             mConnectedThread = null;
         }
         // 启动线程与目标设备连接
-        mConnectThread = new ConnectThread(device, secure);
-        mConnectThread.start();
+   /*     mConnectThread = new ConnectThread(device, secure);
+        mConnectThread.start();*/
+
+        mSecureAcceptThread = new AcceptThread(true);
+        mSecureAcceptThread.start();
         setState(STATE_CONNECTING);
     }
     /**
@@ -173,9 +176,6 @@ public class BluetoothChatService {
             mInsecureAcceptThread = null;
         }
 
-        // 启动线程来管理连接并执行数据发送与接收
-        mConnectedThread = new ConnectedThread(socket, socketType);
-        mConnectedThread.start();
 
         // 发送消息给activity，已经连接到了设备
         Message msg = mHandler.obtainMessage();
@@ -188,6 +188,11 @@ public class BluetoothChatService {
         setState(STATE_CONNECTED);
         //在MyApplication设置为已连接状态（全局管理）
         MyApplication.getInstance().setConnectState(true);
+
+        // 启动线程来管理连接并执行数据发送与接收
+        mConnectedThread = new ConnectedThread(socket, socketType);
+        mConnectedThread.start();
+
     }
 
     /**
@@ -308,8 +313,10 @@ public class BluetoothChatService {
         }
 
         public void cancel(){
+            Log.i(TAG, "close: activity Thread" );
             try{
-                mmServerSocket.close();
+                if (mmServerSocket !=null)
+                    mmServerSocket.close();
             }catch (IOException e){
                 Log.e(TAG, "Socket Type" + mSocketType + "close() of server failed", e);
             }
@@ -334,6 +341,7 @@ public class BluetoothChatService {
                     tmp = device.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE);
                 }
             } catch (IOException e) {
+                Log.e(TAG, "ConnectThread: fail" );
                 e.printStackTrace();
             }
             mmSocket = tmp;
@@ -369,20 +377,25 @@ public class BluetoothChatService {
                 try{
                     mmSocket.close();
                 } catch (IOException e1) {
+                    Log.e(TAG, "run: unable to close" );
                     e1.printStackTrace();
                 }
+                Log.e(TAG, "初始化连接失败 " );
                 connectionFailed();
                 return;
             }
+            //重置
             synchronized (BluetoothChatService.this){
                 mConnectThread = null;
             }
+            //连接建立，开始传输
             connected(mmSocket,mmDevice,mSocketType);
         }
 
         public void cancel(){
             try{
-                mmSocket.close();
+                if(mmSocket !=null)
+                   mmSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.e(TAG, "close() of connect" + mSocketType + "socket failed",e);
@@ -416,11 +429,13 @@ public class BluetoothChatService {
     public void run() {
         byte[] buffer = new byte[1024];
         int bytes;
+        Log.d(TAG, " connected run:state "+mState);
         while (mState == STATE_CONNECTED){
             try{
                 if (mmInStream != null){
                     //从InputStream读取数据
                     bytes = mmInStream.read(buffer);
+                    Log.d(TAG, "receive data: "+bytes);
                     mHandler.obtainMessage(Constants.MESSAGE_READ,bytes,-1,buffer).sendToTarget();
                 }
             } catch (IOException e) {

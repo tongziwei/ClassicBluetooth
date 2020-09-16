@@ -144,7 +144,7 @@ public class BlueToothService extends Service {
                     e.printStackTrace();
                 }
                 int state = mChatService.getState();
-                Log.e("limeng","StateListenThread----state="+state);
+                Log.e(TAG,"StateListenThread----state="+state);
             }
         }
     }

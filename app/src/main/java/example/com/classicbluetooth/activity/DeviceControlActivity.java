@@ -8,6 +8,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -18,7 +20,12 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import example.com.classicbluetooth.R;
+import example.com.classicbluetooth.adapter.Msg;
+import example.com.classicbluetooth.adapter.MsgAdapter;
 import example.com.classicbluetooth.constant.Constants;
 import example.com.classicbluetooth.service.BlueToothService;
 import example.com.classicbluetooth.service.BluetoothChatService;
@@ -30,9 +37,11 @@ public class DeviceControlActivity extends AppCompatActivity implements View.OnC
     private TextView deviceNameText;
     private TextView deviceAddressText;
     private TextView connectStateText;
-    private TextView dataText;
     private EditText dataEditText;
     private Button sendDataButton;
+    private RecyclerView mRvSendReceive;
+    private MsgAdapter mMsgAdapter;
+    private List<Msg> mMsgList = new ArrayList<>();
 
     public static final String EXTRA_DEVICE_NAME =  "Device name";
     public static final String EXTRA_DEVICE_ADDRESS = "Device address";
@@ -74,6 +83,9 @@ public class DeviceControlActivity extends AppCompatActivity implements View.OnC
         deviceNameText.setText(mDeviceName);
         deviceAddressText.setText(mDeviceAddress);
 
+        mMsgAdapter = new MsgAdapter(mMsgList);
+        mRvSendReceive.setAdapter(mMsgAdapter);
+
         initService();
     }
 
@@ -88,13 +100,15 @@ public class DeviceControlActivity extends AppCompatActivity implements View.OnC
         deviceNameText = (TextView)findViewById(R.id.tv_device_name);
         deviceAddressText = (TextView)findViewById(R.id.tv_device_address);
         connectStateText = (TextView)findViewById(R.id.tv_connect_state);
-        dataText = (TextView)findViewById(R.id.tv_data);
         dataEditText = (EditText) findViewById(R.id.et_data);
         sendDataButton = (Button)findViewById(R.id.btn_send_data);
 
         setSupportActionBar(connectToolbar);
 
         sendDataButton.setOnClickListener(this);
+        mRvSendReceive = (RecyclerView)findViewById(R.id.rv_send_receive);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        mRvSendReceive.setLayoutManager(layoutManager);
     }
 
     @Override
@@ -192,14 +206,24 @@ public class DeviceControlActivity extends AppCompatActivity implements View.OnC
                     //发送的数据
                     byte[] writeBuf = (byte[]) msg.obj;
                     String writeMessage = new String(writeBuf);
+                //    dataText.setText(writeMessage);
                     Log.i(TAG, "handleMessage: MESSAGE_WRITE ="+ writeMessage);
+                    Msg sendMsg = new Msg(writeMessage,Msg.TYPE_SEND);
+                    mMsgList.add(sendMsg);
+                    mMsgAdapter.notifyItemInserted(mMsgList.size()-1);
+                    mRvSendReceive.scrollToPosition(mMsgList.size()-1);
+                    dataEditText.setText("");
                     break;
                 case Constants.MESSAGE_READ:
                     //接收的数据
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    dataText.setText(readMessage);
+                    Log.d(TAG, "handleMessage: "+readMessage);
+                    Msg revMsg = new Msg(readMessage,Msg.TYPE_RECEIVE);
+                    mMsgList.add(revMsg);
+                    mMsgAdapter.notifyItemInserted(mMsgList.size()-1);
+                    mRvSendReceive.scrollToPosition(mMsgList.size()-1);
                     break;
                 case Constants.MESSAGE_TOAST:
                     try {
